@@ -35,11 +35,11 @@ def smtp_send_email(email, nameam, priceam, namefl, pricefl, URL, j):
     api_secret = '3b51faf454e90309d8b9ec695b25a8c1'
     mailjet = Client(auth=(api_key, api_secret), version='v3.1')
     expectedprice = expected_prompt()
-    URL2 = "https://www.amazon.in/s?k=" + title2.replace(' ', '+').replace('(', '%28').replace(')', '%29').replace(',',
+    URL2 = "https://www.amazon.in/s?k=" + nameam.replace(' ', '+').replace('(', '%28').replace(')', '%29').replace(',',
                                                                                                                    '%2C')
 
     if j == 1:
-        URL2 = "https://www.amazon.in/s?k=" + title2.replace(' ', '+').replace('(', '%28').replace(')', '%29').replace(
+        URL2 = "https://www.amazon.in/s?k=" + nameam.replace(' ', '+').replace('(', '%28').replace(')', '%29').replace(
             ',', '%2C')
         data = {
             'Messages': [
@@ -112,7 +112,7 @@ def smtp_send_email(email, nameam, priceam, namefl, pricefl, URL, j):
         if j == 3:
             # if pricefl<expectedprice:
             if priceam < expectedprice:
-                URL2 = "https://www.amazon.in/s?k=" + title2.replace(' ', '+').replace('(', '%28').replace(')',
+                URL2 = "https://www.amazon.in/s?k=" + nameam.replace(' ', '+').replace('(', '%28').replace(')',
                                                                                                            '%29').replace(
                     ',', '%2C')
                 data = {
@@ -158,7 +158,7 @@ def smtp_send_email(email, nameam, priceam, namefl, pricefl, URL, j):
                 }
 
             if priceam < expectedprice and pricefl < expectedprice:
-                URL2 = "https://www.amazon.in/s?k=" + title2.replace(' ', '+').replace('(', '%28').replace(')',
+                URL2 = "https://www.amazon.in/s?k=" + nameam.replace(' ', '+').replace('(', '%28').replace(')',
                                                                                                            '%29').replace(
                     ',', '%2C')
                 data = {
@@ -238,10 +238,22 @@ def price_amazon(URL, headers):
     soup2 = BeautifulSoup(page.content, 'html.parser')
     soup = BeautifulSoup(soup2.prettify(), 'html.parser')
 
-    title = soup.find(id='productTitle').get_text()
+    try:
+        title = soup.find(id='productTitle').get_text()
+        price = soup.find(id='priceblock_ourprice').get_text()
+    except:
+        print("There was an error fetching from the URL\nPlease check the URL and your Internet Connection")
+        exit(404)
+    #converted_price = float(price.replace(',', '').replace('Rs.', '').strip())
 
-    price = soup.find(id='priceblock_ourprice').get_text()
-    converted_price = float(price.replace(',', '').replace('Rs.', '').strip())
+    dashind = price.find('-')
+    if dashind == -1:
+        converted_price = float(''.join(re.findall('\d+', price)))
+    else:
+        converted_price = float(''.join(re.findall('\d+', price[0:dashind])))
+
+    if price.find('.') != -1:
+        converted_price = converted_price/100
 
     return converted_price, title.strip()
 
@@ -251,12 +263,15 @@ def price_flipkart(URL, headers):
         page = requests.get(URL.strip(), headers=headers)
     except:
         print("Error Reaching Flipkart\nIf your internet is working fine, try changing User Agent by entering 404 in the main menu\n")
-        exit(0)
+        exit(1)
 
     soup2 = BeautifulSoup(page.content, 'html.parser')
     soup = BeautifulSoup(soup2.prettify(), 'html.parser')
-
-    mydivs2 = soup.find("div", {"class": "_1vC4OE" and "_3qQ9m1"}).encode('utf-8')
+    try:
+        mydivs2 = soup.find("div", {"class": "_1vC4OE" and "_3qQ9m1"}).encode('utf-8')
+    except:
+        print("There was an error fetching from the URL\nPlease check the URL and your Internet Connection\nExitting...")
+        exit(1)
 
     if mydivs2 == 'None':
         mydivs = soup.find("div", {"class": "_1vC4OE"}).get_text().encode('utf-8')
